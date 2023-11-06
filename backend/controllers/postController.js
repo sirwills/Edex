@@ -2,6 +2,7 @@ const postController = require("express").Router();
 const auth = require("../middleware/auth");
 const Post = require('../models/postModel');
 const User = require("../models/UserModel");
+const avatar = require("gravatar")
 
 
 // @Desc      CREATE A NEW POST BY A LOGGED IN USER
@@ -16,12 +17,13 @@ postController.post("/", auth, (async(req, res)=>{
         const post = new Post({
             text: req.body.text,
             name: user.username,
-            user: req.user.id
+            user: req.user.id,
+            avatar: user.avatar
         })
 
         await post.save()
 
-        return res.status(201).json({success: true, Msg: "Successfully created a new post", post})
+        return res.status(201).json(post)
     } catch (error) {
         console.error(error.message);
         return res.status(500).json({success: false, Msg: "Server error"})
@@ -43,7 +45,7 @@ postController.get("/", auth, async(req, res)=>{
         return res.status(400).json({success: false, Msg: "No post found"})
     }
 
-    return res.status(200).json({success: true, posts})
+    return res.status(200).json(posts)
 
     } catch (error) {
         console.error(error.message)
@@ -66,7 +68,7 @@ postController.get("/:id", auth, async(req, res)=>{
         if(!post){
             return res.status(400).json({success: false, Msg: " Server Error"})
         }
-        return res.status(200).json({success: true, post})
+        return res.status(200).json(post)
        } catch (error) {
         console.error(error.message);
         return res.status(500).json({success: false, Msg: "Server Error"})
@@ -222,6 +224,29 @@ postController.put('/comment/:postId/:commentId', auth, async(req, res)=>{
             return res.status(403).json({success: false, Msg: "Invalid Post id"})
         }
         return res.status(500).json({success: false, Msg: "Server Error"})
+    }
+})
+
+// @Desc      Get all comments
+// @Route    api/comment/
+// @access   Private
+// @RequestType POST
+
+
+postController.get("/:postId/comment", auth, async(req, res)=>{
+    try {
+        const post = await Post.findById(req.params.postId)
+        if(!post){
+            return res.status(403).json({success: false, Msg: "No post found"})
+        }
+
+        return res.status(200).json(post.comments)
+
+    } catch (error) {
+     console.error(error.message)
+     if(error.kind === "ObjectId"){
+        return res.status(403).json({success: false, Msg: "Server Error"})
+     }   
     }
 })
 

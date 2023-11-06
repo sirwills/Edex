@@ -20,6 +20,8 @@ const postSchema = new mongoose.Schema({
             },
         },
     ],
+    
+
 
     comments: [
         {
@@ -38,7 +40,11 @@ const postSchema = new mongoose.Schema({
                 default: Date.now
             }
         },
-    ]
+    ],
+    date: {
+        type: Date,
+        default: Date.now()
+    }
 })
 
 module.exports = mongoose.model("Post", postSchema)

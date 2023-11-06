@@ -7,7 +7,9 @@ const SECRET = process.env.SECRET
 const auth = require('../middleware/auth')
 
 
-authController.post('/register', async (req, res, next)=>{
+
+
+authController.post('/register', async (req, res)=>{
     try {
         const {username, email, password} = req.body
 
@@ -18,53 +20,55 @@ authController.post('/register', async (req, res, next)=>{
 
         }
 
-
-        const newUser =  await  User.create({username, email, password})
+        const hashedPassword = await bcrypt.hash(password, 10)
+        const user =  await  User.create({username, email, password:hashedPassword})
 
        
 
-        const token = jwt.sign({id: newUser._id}, SECRET, {expiresIn: "5hr"})
+        const token = jwt.sign({id: user._id}, SECRET, {expiresIn: "5hr"})
 
-        newUser.token = token
+        user.token = token
         
-        await newUser.save()
+        await user.save()
 
-        res.status(201).json({Msg: "User successfully created", success: true, user: newUser, token})
-        next()
+        return res.status(201).json({user, token})
+        
 
        
     } catch (error) {
-       res.status(500).json({success:false, msg: "Server Error"}) 
-       console.error(error)
+        console.error(error.message)
+       return res.status(500).json({success:false, msg: "Server Error"}) 
+      
     }
 });
 
 
-authController.post("/login", async(req, res)=>{
+authController.post('/login', async (req, res) => {
+    const { email, password } = req.body;
+
     try {
-        
-        const {email, password} = req.body;
-        const existingUser = await User.findOne({email})
+        const user = await User.findOne({ email });
 
-        if(!existingUser) {
-            return res.status(404).json({success: false, Msg: "Invalid user credentials"})
+        if (!user) {
+            return res.status(401).json({ success: false, Msg: "Invalid user credentials" });
         }
 
-        const auth = await  bcrypt.compare(password, existingUser.password)
+        const passwordMatch = await bcrypt.compare(password, user.password);
 
-        if(!auth){
-            return res.status(401).json({success: false, Msg: "Invalid user credentials"})
+        if (!passwordMatch) {
+            return res.status(401).json({ success: false, Msg: "Invalid user credentials" });
         }
 
-        const token = jwt.sign({id: existingUser._id}, SECRET, {expiresIn: "2hr"})
+        const token = jwt.sign({ id: user._id }, SECRET, { expiresIn: "5hr" });
 
-        existingUser.token = token
-        return res.status(200).json({success: true, Msg: "successfully logged in", existingUser, token})
+        user.token = token;
+
+        return res.status(200).json({ user, token });
     } catch (error) {
-        console.error(error.message)
-        return res.status(500).json({success: false, Msg: "Server Error"})
+        return res.status(500).json({ success: false, Msg: "Server Error" });
     }
-} )
+});
+
 
 authController.put("/me", auth, async(req, res)=>{
     const {username, password, email} = req.body

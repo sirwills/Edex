@@ -13,11 +13,9 @@ const postController = require("./controllers/postController");
 connectDB();
 
 app.use(express.json())
-app.use(cors({
-    origin: ["http://localhost:7000"],
-    methods: ["GET", "PUT", "POST", "DELETE"],
-    credetials: true
-}));
+app.use(cors())
+// app.use(express.json())
+app.use(express.urlencoded({extended:true}))
 
 app.use('/api', authController);
 app.use("/api/profile", profileController);
